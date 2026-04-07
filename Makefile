@@ -5,11 +5,17 @@ SHELL := /bin/bash
 # =============================================================================
 # Base tools — shared by all projects
 # =============================================================================
-
+# NOTE: System packages installed via apt-get are not version-pinned.
+# apt-get update pulls the latest package list, so versions may differ
+# depending on when the container is built. This affects: curl, wget,
+# git, jq, make, python3-pip, vim, neovim, openssh-client, build-essential,
+# and pyenv/goenv build dependencies (libssl-dev, etc.).
+# Pinned tools (Go, Python, cocotb, oss-cad-suite) are not affected.
 TOOLS:
 	apt-get update -qq
 	apt-get install -y -qq \
-		curl wget git jq make \
+		vim neovim openssh-client \
+		curl wget git jq make python3-pip \
 		build-essential \
 		libssl-dev zlib1g-dev libbz2-dev libreadline-dev \
 		libsqlite3-dev libffi-dev liblzma-dev
@@ -71,7 +77,7 @@ OSS: TOOLS
 
 I2C: TOOLS
 	if [ ! -d "/workspaces/i2cslave" ]; then \
-		git clone https://github.com/AdrianSuliga/I2C-Slave-Controller.git /workspaces/i2cslave 2>/dev/null || \
+		GIT_TERMINAL_PROMPT=0 git clone https://github.com/AdrianSuliga/I2C-Slave-Controller.git /workspaces/i2cslave 2>/dev/null || \
 			echo "WARNING: Could not clone I2C reference"; \
 	fi
 	touch $@

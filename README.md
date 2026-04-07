@@ -27,6 +27,11 @@ The developer just opens their repo and waits. They don't need to know any of th
 | All repos | `DEFAULT` | System tools, goenv, pyenv, Go 1.24.13, Python 3.12 |
 | fpga-workbench | `FPGA` | oss-cad-suite, I2C reference repo, cocotb 2.0.1 |
 
+System packages (vim, git, curl, etc.) are installed via apt and are
+not version-pinned. They get whatever version is current when the
+container is built.
+
+
 ## How to add a new project
 
 1. Open `decomk.conf`
