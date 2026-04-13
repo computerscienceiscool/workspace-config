@@ -3,22 +3,72 @@ SHELL := /bin/bash
 .SHELLFLAGS := -euo pipefail -c
 
 # =============================================================================
+# Ordering — this is the whole point of the file
+# =============================================================================
+# Every install is a target. Every target touches a stamp on success.
+# decomk runs make in /var/decomk/stamps, so `touch $@` lands there.
+# Re-runs see the stamp and skip. That is how a Makefile run at image-build
+# time AND again at container-create time stays a no-op the second pass.
+#
+# Dependency chain (left = runs first, right = runs last):
+#
+#   block00  ->  TOOLS  ->  GO   ->  (Go-dependent targets)
+#                       ->  PYTHON -> COCOTB
+#                                  -> (other Python targets)
+#
+# Block composition (each block is a cumulative snapshot):
+#
+#   block00  = (empty here; content is in workspace-base Dockerfile's
+#              block00 region: Microsoft base + decomk binary only)
+#   block0   = block00 + TOOLS + GO + PYTHON   <-- gold image payload
+#   block10  = block0  + (next shared additions as prereqs)
+#
+# DEFAULT is an alias for block0, preserved so existing decomk.conf
+# entries (e.g. `fpga-workbench: DEFAULT FPGA`) continue to resolve.
+#
+# Rule: new shared tools go in as prereqs of the next block number.
+#       project-specific tools never go in a block; they go in
+#       project macros (see FPGA) and hang off `DEFAULT` via decomk.conf.
+# =============================================================================
+
+block00:
+	touch $@
+
+block0: block00 TOOLS GO PYTHON
+	touch $@
+
+block10: block0
+	touch $@
+
+DEFAULT: block0
+	touch $@
+
+# =============================================================================
 # Base tools — shared by all projects
 # =============================================================================
-# NOTE: System packages installed via apt-get are not version-pinned.
-# apt-get update pulls the latest package list, so versions may differ
-# depending on when the container is built. This affects: curl, wget,
-# git, jq, make, python3-pip, vim, neovim, openssh-client, build-essential,
-# and pyenv/goenv build dependencies (libssl-dev, etc.).
-# Pinned tools (Go, Python, cocotb, oss-cad-suite) are not affected.
+# Versions pinned to Ubuntu 24.04 (noble) as of the base image
+# mcr.microsoft.com/devcontainers/base:ubuntu. Update when the base
+# image is re-pinned.
 TOOLS:
 	apt-get update -qq
 	apt-get install -y -qq \
-		vim neovim openssh-client \
-		curl wget git jq make python3-pip \
-		build-essential \
-		libssl-dev zlib1g-dev libbz2-dev libreadline-dev \
-		libsqlite3-dev libffi-dev liblzma-dev
+		vim=2:9.1.0016-1ubuntu7.10 \
+		neovim=0.9.5-6ubuntu2 \
+		openssh-client=1:9.6p1-3ubuntu13.15 \
+		curl=8.5.0-2ubuntu10.8 \
+		wget=1.21.4-1ubuntu4.1 \
+		git=1:2.43.0-1ubuntu7.3 \
+		jq=1.7.1-3ubuntu0.24.04.1 \
+		make=4.3-4.1build2 \
+		python3-pip=24.0+dfsg-1ubuntu1.3 \
+		build-essential=12.10ubuntu1 \
+		libssl-dev=3.0.13-0ubuntu3.9 \
+		zlib1g-dev=1:1.3.dfsg-3.1ubuntu2.1 \
+		libbz2-dev=1.0.8-5.1build0.1 \
+		libreadline-dev=8.2-4build1 \
+		libsqlite3-dev=3.45.1-1ubuntu2.5 \
+		libffi-dev=3.4.6-1build1 \
+		liblzma-dev=5.6.1+really5.4.5-1ubuntu0.2
 	# --- goenv ---
 	if [ ! -d "/usr/local/goenv" ]; then \
 		git clone https://github.com/go-nv/goenv.git /usr/local/goenv; \
