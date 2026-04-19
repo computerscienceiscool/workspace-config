@@ -52,7 +52,7 @@ DEFAULT: block0
 TOOLS:
 	apt-get update -qq
 	apt-get install -y -qq \
-		vim=2:9.1.0016-1ubuntu7.10 \
+		vim=2:9.1.0016-1ubuntu7.11 \
 		neovim=0.9.5-6ubuntu2 \
 		openssh-client=1:9.6p1-3ubuntu13.15 \
 		curl=8.5.0-2ubuntu10.8 \
